@@ -1,5 +1,6 @@
 # encoding: UTF-8
 
+require 'debug_inspector'
 require 'thread'
 require 'net/http'
 require 'open-uri'
@@ -9,6 +10,13 @@ require 'json'
 require_relative 'wayback_machine_downloader/tidy_bytes'
 require_relative 'wayback_machine_downloader/to_regex'
 require_relative 'wayback_machine_downloader/archive_api'
+
+def wp(var_name_as_sym)
+  # gets caller binding, which contains caller's execution environment
+  parent_binding = RubyVM::DebugInspector.open{|i| i.frame_binding(2) }
+  # now puts the symbol as string + the symbol executed as a variable in the caller's binding
+  puts %Q~#{var_name_as_sym.to_s} = #{eval("#{var_name_as_sym.to_s}.inspect", parent_binding)}~
+end
 
 class WaybackMachineDownloader
 
@@ -104,9 +112,13 @@ class WaybackMachineDownloader
     file_list_curated = Hash.new
     get_all_snapshots_to_consider.each do |file_timestamp, file_url|
       next unless file_url.include?('/')
+      wp :file_url
       file_id = file_url.split('/')[3..-1].join('/')
+      wp :file_id
       file_id = CGI::unescape file_id 
+      wp :file_id
       file_id = file_id.tidy_bytes unless file_id == ""
+      wp :file_id
       if file_id.nil?
         puts "Malformed file url, ignoring: #{file_url}"
       else
@@ -130,10 +142,16 @@ class WaybackMachineDownloader
     file_list_curated = Hash.new
     get_all_snapshots_to_consider.each do |file_timestamp, file_url|
       next unless file_url.include?('/')
+      wp :file_url
       file_id = file_url.split('/')[3..-1].join('/')
+      wp :file_id
       file_id_and_timestamp = [file_timestamp, file_id].join('/')
+      wp :file_id_and_timestamp
       file_id_and_timestamp = CGI::unescape file_id_and_timestamp 
+      wp :file_id_and_timestamp
       file_id_and_timestamp = file_id_and_timestamp.tidy_bytes unless file_id_and_timestamp == ""
+      wp :file_id_and_timestamp
+      wp :file_id
       if file_id.nil?
         puts "Malformed file url, ignoring: #{file_url}"
       else
@@ -209,6 +227,7 @@ class WaybackMachineDownloader
       threads << Thread.new do
         until file_queue.empty?
           file_remote_info = file_queue.pop(true) rescue nil
+          wp :file_remote_info
           download_file(file_remote_info) if file_remote_info
         end
       end
@@ -245,10 +264,15 @@ class WaybackMachineDownloader
 
   def download_file file_remote_info
     current_encoding = "".encoding
+    wp :current_encoding
     file_url = file_remote_info[:file_url].encode(current_encoding)
+    wp :file_url
     file_id = file_remote_info[:file_id]
+    wp :file_id
     file_timestamp = file_remote_info[:timestamp]
+    wp :file_timestamp
     file_path_elements = file_id.split('/')
+    wp :file_path_elements
     if file_id == ""
       dir_path = backup_path
       file_path = backup_path + 'index.html'
