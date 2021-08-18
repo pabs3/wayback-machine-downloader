@@ -15,6 +15,10 @@ module ArchiveAPI
         json.shift
       end
       json
+    rescue OpenURI::HTTPError => e
+      puts "#{request_url} # #{e}"
+      puts e.io.read
+      raise e
     rescue JSON::ParserError
       []
     end
